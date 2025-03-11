@@ -1,0 +1,1 @@
+[]chessgame.vector2 len: 0, cap: 0, []
