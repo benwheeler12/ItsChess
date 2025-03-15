@@ -30,6 +30,10 @@ func (v vector2) add(v2 vector2) vector2 {
 	return vector2{v.x + v2.x, v.y + v2.y}
 }
 
+func (v vector2) equals(v2 vector2) bool {
+	return v.x == v2.x && v.y == v2.y
+}
+
 func filter[T any](slice []T, f func(T) bool) []T {
 	filtered := make([]T, 0)
 	for _, item := range slice {

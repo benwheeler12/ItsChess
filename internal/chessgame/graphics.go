@@ -22,6 +22,7 @@ const (
 
 	// Rotation factor of the baord between matrix state and drawn state.  Rotation in degrees is rotationFactor * 90
 	rotationFactor int = 2
+	flipFactor     int = 1
 )
 
 // Base colors
@@ -217,7 +218,7 @@ func rotateCoord(square vector2, rotationFactor int) vector2 {
 	// normalize between 0 and 3
 	rotationFactor = ((rotationFactor % 4) + 4) % 4
 
-	x, y := square.x, square.y
+	x, y := 7-square.x, square.y
 
 	switch rotationFactor {
 	case 0:

@@ -1,1 +1,4 @@
-add castling
+refactor state management into own file
+add rotation and flip state to game state
+divide attacked and move functionality to own file
+add tests

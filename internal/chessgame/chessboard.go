@@ -2,6 +2,11 @@ package chessgame
 
 import "fmt"
 
+const (
+	aSideCastlingXValue = 3
+	hSideCastlingYValue = 5
+)
+
 func (cb *chessBoard) initializeBoard() {
 	// Initialize whole board with empty squares
 	for file := 0; file < 8; file++ {
@@ -14,8 +19,8 @@ func (cb *chessBoard) initializeBoard() {
 	cb.board[0][0] = chessPiece{rook, white}
 	cb.board[1][0] = chessPiece{knight, white}
 	cb.board[2][0] = chessPiece{bishop, white}
-	cb.board[3][0] = chessPiece{king, white}
-	cb.board[4][0] = chessPiece{queen, white}
+	cb.board[3][0] = chessPiece{queen, white}
+	cb.board[4][0] = chessPiece{king, white}
 	cb.board[5][0] = chessPiece{bishop, white}
 	cb.board[6][0] = chessPiece{knight, white}
 	cb.board[7][0] = chessPiece{rook, white}
@@ -32,8 +37,8 @@ func (cb *chessBoard) initializeBoard() {
 	cb.board[0][7] = chessPiece{rook, black}
 	cb.board[1][7] = chessPiece{knight, black}
 	cb.board[2][7] = chessPiece{bishop, black}
-	cb.board[3][7] = chessPiece{king, black}
-	cb.board[4][7] = chessPiece{queen, black}
+	cb.board[3][7] = chessPiece{queen, black}
+	cb.board[4][7] = chessPiece{king, black}
 	cb.board[5][7] = chessPiece{bishop, black}
 	cb.board[6][7] = chessPiece{knight, black}
 	cb.board[7][7] = chessPiece{rook, black}
@@ -48,6 +53,13 @@ func (cb *chessBoard) initializeBoard() {
 	cb.board[7][6] = chessPiece{pawn, black}
 
 	cb.enpassantSquare = nilSquare
+
+	cb.castlingState.a1RookMoved = false
+	cb.castlingState.a8RookMoved = false
+	cb.castlingState.h1RookMoved = false
+	cb.castlingState.h8RookMoved = false
+	cb.castlingState.blackKingMoved = false
+	cb.castlingState.whiteKingMoved = false
 }
 
 func (cb *chessBoard) deepCopy() chessBoard {
@@ -98,7 +110,52 @@ func (cb *chessBoard) isEnPassantMove(square vector2, targetSquare vector2) (boo
 	return false, nilSquare
 }
 
+func (cb *chessBoard) updateCastlingState(movedFromSquare vector2) {
+	if movedFromSquare.equals(vector2{0, 0}) {
+		cb.castlingState.a1RookMoved = true
+	}
+	if movedFromSquare.equals(vector2{7, 0}) {
+		cb.castlingState.h1RookMoved = true
+	}
+	if movedFromSquare.equals(vector2{0, 7}) {
+		cb.castlingState.a8RookMoved = true
+	}
+	if movedFromSquare.equals(vector2{7, 7}) {
+		cb.castlingState.h8RookMoved = true
+	}
+
+	if movedFromSquare.equals(vector2{4, 0}) {
+		cb.castlingState.whiteKingMoved = true
+	}
+	if movedFromSquare.equals(vector2{4, 7}) {
+		cb.castlingState.blackKingMoved = true
+	}
+}
+
+// Expects given move to be legal
 func (cb *chessBoard) movePiece(square vector2, targetSquare vector2) {
+	piece := cb.getPiece(square)
+
+	cb.setPiece(targetSquare, piece)
+	cb.setPiece(square, emptyPiece)
+
+	// Move Rook if move is a caslting move
+	if piece.piece == king && abs(square.x-targetSquare.x) > 1 {
+		moveARook := square.x > targetSquare.x // False implies that H rook must be moved
+		if moveARook {
+			rookSquare := vector2{0, targetSquare.y}
+			cb.setPiece(rookSquare, emptyPiece)
+			cb.setPiece(vector2{aSideCastlingXValue, targetSquare.y}, chessPiece{rook, piece.color})
+			cb.updateCastlingState(rookSquare)
+		} else {
+			rookSquare := vector2{7, targetSquare.y}
+			cb.setPiece(rookSquare, emptyPiece)
+			cb.setPiece(vector2{hSideCastlingYValue, targetSquare.y}, chessPiece{rook, piece.color})
+			cb.updateCastlingState(rookSquare)
+		}
+	}
+
+	// Updates Enpassant state if applicable
 	createsEnpassant, enPassantSquare := cb.isEnPassantMove(square, targetSquare)
 	if createsEnpassant {
 		cb.enpassantSquare = enPassantSquare
@@ -106,8 +163,8 @@ func (cb *chessBoard) movePiece(square vector2, targetSquare vector2) {
 		cb.enpassantSquare = nilSquare
 	}
 
-	cb.setPiece(targetSquare, cb.getPiece(square))
-	cb.setPiece(square, emptyPiece)
+	// Update Castling state if applicable
+	cb.updateCastlingState(square)
 }
 
 func (cb *chessBoard) isEmpty(square vector2) bool {
@@ -139,6 +196,7 @@ func (cb *chessBoard) getAllPieceSquares(pieceColor pieceColor) []vector2 {
 }
 
 func (cb *chessBoard) moveInducesCheck(pieceSquare vector2, targetSquare vector2, playerColor pieceColor) bool {
+	return false //TODO REMOVE
 	testBoard := cb.deepCopy()
 
 	testBoard.movePiece(pieceSquare, targetSquare)
@@ -149,7 +207,7 @@ func (cb *chessBoard) moveInducesCheck(pieceSquare vector2, targetSquare vector2
 func (cb *chessBoard) kingInCheck(kingSquare vector2, kingColor pieceColor) bool {
 	opponentSquares := cb.getAllPieceSquares(kingColor.oppositeColor())
 	for _, opponentSquare := range opponentSquares {
-		attackedSquares := cb.getAttackedSquares(opponentSquare, cb.getPiece(opponentSquare))
+		attackedSquares := cb.getAttackedSquares(opponentSquare)
 		if contains(attackedSquares, kingSquare) {
 			return true
 		}
@@ -214,8 +272,9 @@ func (cb *chessBoard) getValidMoves(square vector2, chessPiece chessPiece) []vec
 	}
 }
 
-// returns squares that a piece can attack.  Differs only from getValidMoves for pawns
-func (cb *chessBoard) getAttackedSquares(square vector2, chessPiece chessPiece) []vector2 {
+// Returns squares that a piece can attack.  Differs only from getValidMoves for pawns.  Attacked squares include squares that a piece can take (i.e. squares occupied by a piece of the opposite color)
+func (cb *chessBoard) getAttackedSquares(square vector2) []vector2 {
+	chessPiece := cb.getPiece(square)
 	if chessPiece.piece == pawn {
 		return cb.getPawnAttackedSquares(chessPiece.color, square)
 	} else if chessPiece.piece == king {
@@ -230,6 +289,112 @@ func (cb *chessBoard) getAttackedSquares(square vector2, chessPiece chessPiece) 
 		return cb.getQueenAttackedSquares(chessPiece.color, square)
 	}
 	panic(fmt.Sprintf("%v is a non-existent piece!", chessPiece))
+}
+
+func (cb *chessBoard) getAllAttackedSquares(attackingColor pieceColor) []vector2 {
+
+	// Use a map to avoid duplicates
+	allAttackedSquaresMap := make(map[vector2]bool)
+
+	attackingSquares := cb.getAllPieceSquares(attackingColor)
+	for _, attackingSqaure := range attackingSquares {
+		attackedSquares := cb.getAttackedSquares(attackingSqaure)
+		for _, attackedSquare := range attackedSquares {
+			allAttackedSquaresMap[attackedSquare] = true
+		}
+	}
+
+	var allAttackedSquares []vector2
+
+	for key := range allAttackedSquaresMap {
+		allAttackedSquares = append(allAttackedSquares, key)
+	}
+
+	return allAttackedSquares
+}
+
+func (cb *chessBoard) isSquareAttacked(square vector2, attackingColor pieceColor) bool {
+	for _, attackedSquare := range cb.getAllAttackedSquares(attackingColor) {
+		if square.equals(attackedSquare) {
+			return true
+		}
+	}
+
+	return false
+}
+
+func (cb *chessBoard) getCastlingMoves(kingColor pieceColor) []vector2 {
+	// King has already moved, no legal caslting squares
+	if (kingColor == white && cb.castlingState.whiteKingMoved) ||
+		(kingColor == black && cb.castlingState.blackKingMoved) {
+		return nil
+	}
+
+	// Initialize color generic state
+	var aRookMoved, hRookMoved bool
+	var rank int
+	if kingColor == white {
+		aRookMoved, hRookMoved = cb.castlingState.a1RookMoved, cb.castlingState.h1RookMoved
+		rank = 0
+	} else {
+		aRookMoved, hRookMoved = cb.castlingState.a8RookMoved, cb.castlingState.h8RookMoved
+		rank = 7
+	}
+
+	// Squares that need to be empty for castling to be legal
+	aSideSquares := []vector2{vector2{1, rank}, vector2{2, rank}, vector2{3, rank}}
+	hSideSquares := []vector2{vector2{6, rank}, vector2{5, rank}}
+
+	// Squares that cannot be attacked for castling to be legal
+	aSideUnattacked := []vector2{vector2{2, rank}, vector2{3, rank}}
+	hSideUnattacked := hSideSquares
+
+	// Check legality of A side castling
+	aSideCastleLegal := true
+	if aRookMoved {
+		aSideCastleLegal = false
+	}
+	for _, aSideSquare := range aSideSquares {
+		if cb.getPiece(aSideSquare) != emptyPiece {
+			aSideCastleLegal = false
+			break
+		}
+	}
+	for _, aSideUnattackedSquare := range aSideUnattacked {
+		if cb.isSquareAttacked(aSideUnattackedSquare, kingColor.oppositeColor()) {
+			aSideCastleLegal = false
+			break
+		}
+	}
+
+	// Check legality of H side castling
+	hSideCastleLegal := true
+	if hRookMoved {
+		hSideCastleLegal = false
+	}
+	for _, hSideSquare := range hSideSquares {
+		if cb.getPiece(hSideSquare) != emptyPiece {
+			hSideCastleLegal = false
+			break
+		}
+	}
+	for _, hSideUnattackedSquare := range hSideUnattacked {
+		if cb.isSquareAttacked(hSideUnattackedSquare, kingColor.oppositeColor()) {
+			hSideCastleLegal = false
+			break
+		}
+	}
+
+	var castlingMoves []vector2
+	if aSideCastleLegal {
+		castlingMoves = append(castlingMoves, vector2{2, rank})
+	}
+	if hSideCastleLegal {
+		castlingMoves = append(castlingMoves, vector2{6, rank})
+	}
+
+	return castlingMoves
+
 }
 
 func (cb *chessBoard) getKingMoves(kingColor pieceColor, kingSquare vector2) []vector2 {
@@ -258,6 +423,8 @@ func (cb *chessBoard) getKingMoves(kingColor pieceColor, kingSquare vector2) []v
 		}
 		kingMoves = append(kingMoves, kingMoveSquare)
 	}
+
+	kingMoves = append(kingMoves, cb.getCastlingMoves(kingColor)...)
 
 	return kingMoves
 }

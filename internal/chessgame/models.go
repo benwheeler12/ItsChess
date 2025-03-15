@@ -30,9 +30,19 @@ type chessPiece struct {
 	color pieceColor
 }
 
+type castlingState struct {
+	a1RookMoved    bool
+	a8RookMoved    bool
+	h1RookMoved    bool
+	h8RookMoved    bool
+	blackKingMoved bool
+	whiteKingMoved bool
+}
+
 type chessBoard struct {
 	board           [8][8]chessPiece
 	enpassantSquare vector2
+	castlingState
 }
 
 type vector2 struct {
