@@ -342,11 +342,11 @@ func (cb *chessBoard) getCastlingMoves(kingColor pieceColor) []vector2 {
 	}
 
 	// Squares that need to be empty for castling to be legal
-	aSideSquares := []vector2{vector2{1, rank}, vector2{2, rank}, vector2{3, rank}}
-	hSideSquares := []vector2{vector2{6, rank}, vector2{5, rank}}
+	aSideSquares := []vector2{{1, rank}, {2, rank}, {3, rank}}
+	hSideSquares := []vector2{{6, rank}, {5, rank}}
 
 	// Squares that cannot be attacked for castling to be legal
-	aSideUnattacked := []vector2{vector2{2, rank}, vector2{3, rank}}
+	aSideUnattacked := []vector2{{2, rank}, {3, rank}}
 	hSideUnattacked := hSideSquares
 
 	// Check legality of A side castling
