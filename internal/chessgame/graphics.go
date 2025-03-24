@@ -1,11 +1,12 @@
 package chessgame
 
 import (
+	"bytes"
+	_ "embed"
 	"image"
 	"image/color"
 	"log"
 	"math"
-	"os"
 
 	"github.com/hajimehoshi/ebiten/v2"
 	"github.com/hajimehoshi/ebiten/v2/vector"
@@ -33,6 +34,43 @@ var (
 	// Yellow tinted variants
 	lightSquareHighlightColor = color.RGBA{255, 255, 200, 50}  // Light yellow
 	darkSquareHighlightColor  = color.RGBA{255, 255, 200, 255} // Green with yellow tint
+
+	// SVG Images
+	//go:embed assets/white_pawn.svg
+	whitePawnBytes []byte
+
+	//go:embed assets/black_pawn.svg
+	blackPawnBytes []byte
+
+	//go:embed assets/white_bishop.svg
+	whiteBishopBytes []byte
+
+	//go:embed assets/black_bishop.svg
+	blackBishopBytes []byte
+
+	//go:embed assets/white_knight.svg
+	whiteKnightBytes []byte
+
+	//go:embed assets/black_knight.svg
+	blackKnightBytes []byte
+
+	//go:embed assets/white_rook.svg
+	whiteRookBytes []byte
+
+	//go:embed assets/black_rook.svg
+	blackRookBytes []byte
+
+	//go:embed assets/white_queen.svg
+	whiteQueenBytes []byte
+
+	//go:embed assets/black_queen.svg
+	blackQueenBytes []byte
+
+	//go:embed assets/white_king.svg
+	whiteKingBytes []byte
+
+	//go:embed assets/black_king.svg
+	blackKingBytes []byte
 )
 
 // Methods for basic dimensions as functions of window height and width
@@ -62,18 +100,18 @@ func (g *ChessGame) pieceHeight() float64 {
 
 func (g *ChessGame) initializePieceImages() {
 	g.pieceEbitenMap = map[chessPiece]*ebiten.Image{
-		{pawn, white}:   g.getPieceImage("../assets/white_pawn.svg"),
-		{pawn, black}:   g.getPieceImage("../assets/black_pawn.svg"),
-		{bishop, white}: g.getPieceImage("../assets/white_bishop.svg"),
-		{bishop, black}: g.getPieceImage("../assets/black_bishop.svg"),
-		{knight, white}: g.getPieceImage("../assets/white_knight.svg"),
-		{knight, black}: g.getPieceImage("../assets/black_knight.svg"),
-		{rook, white}:   g.getPieceImage("../assets/white_rook.svg"),
-		{rook, black}:   g.getPieceImage("../assets/black_rook.svg"),
-		{queen, white}:  g.getPieceImage("../assets/white_queen.svg"),
-		{queen, black}:  g.getPieceImage("../assets/black_queen.svg"),
-		{king, white}:   g.getPieceImage("../assets/white_king.svg"),
-		{king, black}:   g.getPieceImage("../assets/black_king.svg"),
+		{pawn, white}:   g.getPieceImage(whitePawnBytes),
+		{pawn, black}:   g.getPieceImage(blackPawnBytes),
+		{bishop, white}: g.getPieceImage(whiteBishopBytes),
+		{bishop, black}: g.getPieceImage(blackBishopBytes),
+		{knight, white}: g.getPieceImage(whiteKnightBytes),
+		{knight, black}: g.getPieceImage(blackKnightBytes),
+		{rook, white}:   g.getPieceImage(whiteRookBytes),
+		{rook, black}:   g.getPieceImage(blackRookBytes),
+		{queen, white}:  g.getPieceImage(whiteQueenBytes),
+		{queen, black}:  g.getPieceImage(blackQueenBytes),
+		{king, white}:   g.getPieceImage(whiteKingBytes),
+		{king, black}:   g.getPieceImage(blackKingBytes),
 	}
 }
 
@@ -161,16 +199,18 @@ func (g *ChessGame) Layout(outsideWidth, outsideHeight int) (int, int) {
 	return outsideWidth, outsideHeight
 }
 
-func (g *ChessGame) getPieceImage(path string) *ebiten.Image {
+func (g *ChessGame) getPieceImage(pieceBytes []byte) *ebiten.Image {
 	// Open the SVG file
-	file, err := os.Open(path)
+	/**file, err := os.Open(path)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer file.Close()
+	defer file.Close()*/
+
+	reader := bytes.NewReader(pieceBytes)
 
 	// Decode SVG
-	icon, err := oksvg.ReadIconStream(file)
+	icon, err := oksvg.ReadIconStream(reader)
 	if err != nil {
 		log.Fatal(err)
 	}
