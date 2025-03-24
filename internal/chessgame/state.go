@@ -26,8 +26,8 @@ const (
 )
 
 type chessPiece struct {
-	piece piece
-	color pieceColor
+	pieceType piece
+	color     pieceColor
 }
 
 type castlingState struct {
@@ -57,6 +57,11 @@ type mouseLifeCycle struct {
 	possibleMoveSquares         []vector2 //representing possible moves from currently selected piece
 }
 
+type promotionLifeCycle struct {
+	promotionSquare     vector2
+	promotionInProgress bool
+}
+
 type mouseState struct {
 	mousePressed   bool
 	lastMouseState bool
@@ -72,6 +77,20 @@ type ChessGame struct {
 	chessBoard
 	mouseState
 	mouseLifeCycle
+	promotionLifeCycle
 	graphicsState
 	whitesTurn bool
+}
+
+// Initializers:
+func (ms *mouseLifeCycle) resetMouseState() {
+	ms.selectedPiece = emptyPiece
+	ms.mouseClickedOnInvalidSquare = false
+	ms.selectedSquare = nilSquare
+	ms.possibleMoveSquares = nil
+}
+
+func (pfc *promotionLifeCycle) resetPromotionLifeCycle() {
+	pfc.promotionInProgress = false
+	pfc.promotionSquare = nilSquare
 }

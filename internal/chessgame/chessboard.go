@@ -83,7 +83,7 @@ func (cb *chessBoard) getPiece(square vector2) chessPiece {
 func (cb *chessBoard) getKingSquare(playerColor pieceColor) vector2 {
 	for x := range 8 {
 		for y := range 8 {
-			if cb.getPiece(vector2{x, y}).color == playerColor && cb.getPiece(vector2{x, y}).piece == king {
+			if cb.getPiece(vector2{x, y}).color == playerColor && cb.getPiece(vector2{x, y}).pieceType == king {
 				return vector2{x, y}
 			}
 		}
@@ -98,7 +98,7 @@ func (cb *chessBoard) setPiece(square vector2, piece chessPiece) {
 
 func (cb *chessBoard) isEnPassantMove(square vector2, targetSquare vector2) (bool, vector2) {
 	chessPiece := cb.getPiece(square)
-	if chessPiece.piece != pawn {
+	if chessPiece.pieceType != pawn {
 		return false, nilSquare
 	}
 	if chessPiece.color == white && targetSquare == square.add((vector2{0, 2})) {
@@ -132,6 +132,15 @@ func (cb *chessBoard) updateCastlingState(movedFromSquare vector2) {
 	}
 }
 
+func (cb *chessBoard) promotionTriggeredOnSquare(square vector2) bool {
+	chessPiece := cb.getPiece(square)
+	if chessPiece.pieceType != pawn {
+		return false
+	}
+	return (chessPiece.color == black && square.y == 0) ||
+		(chessPiece.color == white && square.y == 7)
+}
+
 // Expects given move to be legal
 func (cb *chessBoard) movePiece(square vector2, targetSquare vector2) {
 	piece := cb.getPiece(square)
@@ -140,7 +149,7 @@ func (cb *chessBoard) movePiece(square vector2, targetSquare vector2) {
 	cb.setPiece(square, emptyPiece)
 
 	// Move Rook if move is a caslting move
-	if piece.piece == king && abs(square.x-targetSquare.x) > 1 {
+	if piece.pieceType == king && abs(square.x-targetSquare.x) > 1 {
 		moveARook := square.x > targetSquare.x // False implies that H rook must be moved
 		if moveARook {
 			rookSquare := vector2{0, targetSquare.y}
@@ -196,7 +205,6 @@ func (cb *chessBoard) getAllPieceSquares(pieceColor pieceColor) []vector2 {
 }
 
 func (cb *chessBoard) moveInducesCheck(pieceSquare vector2, targetSquare vector2, playerColor pieceColor) bool {
-	return false //TODO REMOVE
 	testBoard := cb.deepCopy()
 
 	testBoard.movePiece(pieceSquare, targetSquare)
@@ -254,7 +262,7 @@ func (cb *chessBoard) getAllValidMovesForPlayer(playerColor pieceColor) [][]vect
 }
 
 func (cb *chessBoard) getValidMoves(square vector2, chessPiece chessPiece) []vector2 {
-	switch chessPiece.piece {
+	switch chessPiece.pieceType {
 	case pawn:
 		return cb.getPawnMoves(chessPiece.color, square)
 	case bishop:
@@ -275,17 +283,17 @@ func (cb *chessBoard) getValidMoves(square vector2, chessPiece chessPiece) []vec
 // Returns squares that a piece can attack.  Differs only from getValidMoves for pawns.  Attacked squares include squares that a piece can take (i.e. squares occupied by a piece of the opposite color)
 func (cb *chessBoard) getAttackedSquares(square vector2) []vector2 {
 	chessPiece := cb.getPiece(square)
-	if chessPiece.piece == pawn {
+	if chessPiece.pieceType == pawn {
 		return cb.getPawnAttackedSquares(chessPiece.color, square)
-	} else if chessPiece.piece == king {
+	} else if chessPiece.pieceType == king {
 		return cb.getKingAttackedSquares(chessPiece.color, square)
-	} else if chessPiece.piece == bishop {
+	} else if chessPiece.pieceType == bishop {
 		return cb.getBishopAttackedSquares(chessPiece.color, square)
-	} else if chessPiece.piece == knight {
+	} else if chessPiece.pieceType == knight {
 		return cb.getKnightAttackedSquares(chessPiece.color, square)
-	} else if chessPiece.piece == rook {
+	} else if chessPiece.pieceType == rook {
 		return cb.getRookAttackedSquares(chessPiece.color, square)
-	} else if chessPiece.piece == queen {
+	} else if chessPiece.pieceType == queen {
 		return cb.getQueenAttackedSquares(chessPiece.color, square)
 	}
 	panic(fmt.Sprintf("%v is a non-existent piece!", chessPiece))
@@ -748,7 +756,7 @@ func (cb *chessBoard) getQueenMoves(queenColor pieceColor, queenSquare vector2) 
 }
 
 func (cb *chessBoard) isValidMove(piece chessPiece, piecePosition vector2, newPosition vector2) bool {
-	switch piece.piece {
+	switch piece.pieceType {
 	case pawn:
 		return contains(cb.getPawnMoves(piece.color, piecePosition), newPosition)
 	case bishop:

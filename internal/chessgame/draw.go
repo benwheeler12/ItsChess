@@ -31,10 +31,6 @@ var (
 	lightSquareColor = color.RGBA{238, 238, 238, 255} // Off white
 	darkSquareColor  = color.RGBA{118, 150, 86, 255}  // Green
 
-	// Yellow tinted variants
-	lightSquareHighlightColor = color.RGBA{255, 255, 200, 50}  // Light yellow
-	darkSquareHighlightColor  = color.RGBA{255, 255, 200, 255} // Green with yellow tint
-
 	// SVG Images
 	//go:embed assets/white_pawn.svg
 	whitePawnBytes []byte
@@ -74,28 +70,28 @@ var (
 )
 
 // Methods for basic dimensions as functions of window height and width
-func (g *ChessGame) boardWidth() int {
-	return min(g.graphicsState.windowWidth, g.graphicsState.windowHeight) + 4
+func (gr *graphicsState) boardWidth() int {
+	return min(gr.windowWidth, gr.windowHeight) + 4
 }
 
-func (g *ChessGame) boardHeight() int {
-	return min(g.graphicsState.windowWidth, g.graphicsState.windowHeight) + 4
+func (gr *graphicsState) boardHeight() int {
+	return min(gr.windowWidth, gr.windowHeight) + 4
 }
 
-func (g *ChessGame) squareWidth() float64 {
-	return float64(g.boardWidth() / 8)
+func (gr *graphicsState) squareWidth() float64 {
+	return float64(gr.boardWidth() / 8)
 }
 
-func (g *ChessGame) squareHeight() float64 {
-	return float64(g.boardHeight() / 8)
+func (gr *graphicsState) squareHeight() float64 {
+	return float64(gr.boardHeight() / 8)
 }
 
-func (g *ChessGame) pieceWidth() float64 {
-	return g.squareWidth() * pieceScale
+func (gr *graphicsState) pieceWidth() float64 {
+	return gr.squareWidth() * pieceScale
 }
 
-func (g *ChessGame) pieceHeight() float64 {
-	return g.squareHeight() * pieceScale
+func (gr *graphicsState) pieceHeight() float64 {
+	return gr.squareHeight() * pieceScale
 }
 
 func (g *ChessGame) initializePieceImages() {
@@ -273,9 +269,9 @@ func rotateCoord(square vector2, rotationFactor int) vector2 {
 	return vector2{x, y} // default case, shouldn't be reached
 }
 
-func (g *ChessGame) getSquareOfMousePosition(x int, y int) (vector2, bool) {
-	file := int(float64(x) / g.squareWidth())
-	rank := int(float64(y) / g.squareHeight())
+func (gr *graphicsState) getSquareOfMousePosition(x int, y int) (vector2, bool) {
+	file := int(float64(x) / gr.squareWidth())
+	rank := int(float64(y) / gr.squareHeight())
 
 	// Check if coordinates are within bounds
 	if file < 0 || file >= 8 || rank < 0 || rank >= 8 {

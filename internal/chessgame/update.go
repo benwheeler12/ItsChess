@@ -4,25 +4,6 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-func StartGame() {
-	var game *ChessGame = &ChessGame{}
-	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
-	ebiten.SetWindowSize(startingWindowWidth, startingWindowHeight)
-	ebiten.SetWindowTitle("Ben's Cutie Pie Chess Game")
-
-	game.windowWidth = startingWindowWidth
-	game.windowHeight = startingWindowHeight
-
-	game.initializeBoard()
-	game.initializePieceImages()
-	game.mouseLifeCycle.resetMouseState()
-	game.whitesTurn = true
-
-	if err := ebiten.RunGame(game); err != nil {
-		panic(err)
-	}
-}
-
 func (g *ChessGame) Update() error {
 
 	g.lastMouseState = g.mousePressed
@@ -41,7 +22,31 @@ func (g *ChessGame) Update() error {
 }
 
 func (g *ChessGame) handleMouseClick() {
-	mouseSquare, outOfBounds := g.getSquareOfMousePosition(ebiten.CursorPosition())
+	if g.promotionLifeCycle.promotionInProgress {
+		g.handleMouseClickInPromotionPhase()
+	} else {
+		g.handleMouseClickInChessPhase()
+	}
+}
+
+func (g *ChessGame) handleMouseRelease() {
+	if g.promotionLifeCycle.promotionInProgress {
+		g.handleMouseReleaseInPromotionPhase()
+	} else {
+		g.handleMouseReleaseInChessPhase()
+	}
+}
+
+func (g *ChessGame) handleMouseClickInPromotionPhase() {
+
+}
+
+func (g *ChessGame) handleMouseReleaseInPromotionPhase() {
+
+}
+
+func (g *ChessGame) handleMouseClickInChessPhase() {
+	mouseSquare, outOfBounds := g.graphicsState.getSquareOfMousePosition(ebiten.CursorPosition())
 
 	// Handle Out of Bounds case
 	if outOfBounds {
@@ -75,33 +80,37 @@ func (g *ChessGame) handleMouseClick() {
 		g.mouseLifeCycle.selectedSquare,
 		g.mouseLifeCycle.selectedPiece,
 	)
-
 }
 
-func (g *ChessGame) handleMouseRelease() {
-
+func (g *ChessGame) handleMouseReleaseInChessPhase() {
 	// Reset mouse state upon any release
 	defer func() {
 		g.mouseLifeCycle.resetMouseState()
 	}()
 
-	// If the mouse was clicked on an invalid square, just return
+	// If the mouse was clicked on an invalid square
 	if g.mouseClickedOnInvalidSquare {
 		return
 	}
 
-	mouseSquare, outOfBounds := g.getSquareOfMousePosition(ebiten.CursorPosition())
+	mouseSquare, outOfBounds := g.graphicsState.getSquareOfMousePosition(ebiten.CursorPosition())
 
-	// If mouse if out of bounds, return piece to its original square
+	// If mouse if out of bounds,
 	if outOfBounds {
-		g.board[g.mouseLifeCycle.selectedSquare.x][g.mouseLifeCycle.selectedSquare.y] = g.mouseLifeCycle.selectedPiece
-		g.mouseLifeCycle.selectedPiece = emptyPiece
 		return
 	}
 
-	// If move is valid, move the piece to the new square
-	if contains(g.mouseLifeCycle.possibleMoveSquares, mouseSquare) {
-		g.chessBoard.movePiece(g.mouseLifeCycle.selectedSquare, mouseSquare)
+	// Move is invalid
+	if !contains(g.mouseLifeCycle.possibleMoveSquares, mouseSquare) {
+		return
+	}
+
+	// Move the piece
+	g.chessBoard.movePiece(g.mouseLifeCycle.selectedSquare, mouseSquare)
+	if g.chessBoard.promotionTriggeredOnSquare(mouseSquare) {
+		g.promotionLifeCycle.promotionInProgress = true
+		g.promotionLifeCycle.promotionSquare = mouseSquare
+	} else {
 		g.whitesTurn = !g.whitesTurn
 	}
 }
