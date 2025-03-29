@@ -52,7 +52,7 @@ var (
 
 func (g *ChessGame) Draw(screen *ebiten.Image) {
 
-	chessBoardImage := g.chessBoardGraphic.drawChessBoard()
+	chessBoardImage := g.chessBoardGraphic.drawChessBoard(&g.chessBoard)
 
 	op := &ebiten.DrawImageOptions{}
 

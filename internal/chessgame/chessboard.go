@@ -194,10 +194,6 @@ func (cb *chessBoard) inBoard(square vector2) bool {
 		square.y < 8
 }
 
-func (cb *chessBoard) isDarkSquare(square vector2) bool {
-	return (square.x+square.y)%2 == 0
-}
-
 func (cb *chessBoard) getAllPieceSquares(pieceColor pieceColor) []vector2 {
 	pieces := []vector2{}
 	for x := range 8 {

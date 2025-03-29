@@ -25,9 +25,9 @@ func StartGame() {
 	var game *ChessGame = &ChessGame{}
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowSize(startingWindowWidth, startingWindowHeight)
-	ebiten.SetWindowTitle("Ben's Cutie Pie Chess Game")
+	ebiten.SetWindowTitle("It's Chess")
 	game.chessBoard.init()
-	game.chessBoardGraphic.init(math.Pi, 1, startingWindowWidth, startingWindowHeight, &game.chessBoard)
+	game.chessBoardGraphic.init(math.Pi, 1, startingWindowWidth, startingWindowHeight)
 	game.mouseLifeCycle.resetMouseState()
 	game.promotionLifeCycle.resetPromotionLifeCycle()
 	game.whitesTurn = true

@@ -14,7 +14,6 @@ import (
 )
 
 type chessBoardGraphic struct {
-	*chessBoard
 	rotationTheta       float64
 	reflection          int
 	pieceImages         map[chessPiece]*ebiten.Image
@@ -27,26 +26,25 @@ type chessBoardGraphic struct {
 
 const pieceScale = .9
 
-func (cbg *chessBoardGraphic) init(rotationTheta float64, reflection int, width int, height int, chessBoard *chessBoard) {
+func (cbg *chessBoardGraphic) init(rotationTheta float64, reflection int, width int, height int) {
 	cbg.rotationTheta = rotationTheta
 	cbg.reflection = reflection
 	cbg.width = width
 	cbg.height = height
 	cbg.loadPieceImages()
 
-	cbg.chessBoard = chessBoard
 	cbg.clickedSquare = nilSquare
 	cbg.possibleMoveSquares = nil
 	cbg.promotionSquare = nilSquare
 }
 
-func (cbg *chessBoardGraphic) drawChessBoard() *ebiten.Image {
+func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Image {
 	chessBoardImage := ebiten.NewImage(cbg.boardWidth(), cbg.boardHeight())
 
 	chessBoardImage.Fill(color.RGBA{255, 255, 255, 255})
 
 	// TODO implement checkmate animation
-	if cbg.chessBoard.playerInCheckMate(white) || cbg.chessBoard.playerInCheckMate(black) {
+	if chessBoard.playerInCheckMate(white) || chessBoard.playerInCheckMate(black) {
 		return chessBoardImage
 	}
 
@@ -57,7 +55,7 @@ func (cbg *chessBoardGraphic) drawChessBoard() *ebiten.Image {
 			squareX := cbg.squareWidth() * float64(file)
 			squareY := cbg.squareHeight() * float64(rank)
 
-			cbg.drawChessSquare(chessBoardImage, squareX, squareY, vector2{file, rank})
+			cbg.drawChessSquare(chessBoardImage, chessBoard, squareX, squareY, vector2{file, rank})
 			continue
 		}
 	}
@@ -229,11 +227,12 @@ func (cbg *chessBoardGraphic) getPromotionPopupOrigin(promotionSquare vector2) p
 }
 
 // square refers to the canonical chess square that this function call will draw
-func (cbg *chessBoardGraphic) drawChessSquare(screen *ebiten.Image, x float64, y float64, square vector2) {
+func (cbg *chessBoardGraphic) drawChessSquare(screen *ebiten.Image, chessBoard *chessBoard, x float64, y float64, square vector2) {
 
 	// Calculate Color
 	squareColor := lightSquareColor
-	if cbg.chessBoard.isDarkSquare(square) {
+
+	if (square.x+square.y)%2 == 0 {
 		squareColor = darkSquareColor
 	}
 
@@ -250,7 +249,7 @@ func (cbg *chessBoardGraphic) drawChessSquare(screen *ebiten.Image, x float64, y
 		true)
 
 	if cbg.clickedSquare != square {
-		cbg.drawChessPiece(cbg.chessBoard.getPiece(square), x, y, screen)
+		cbg.drawChessPiece(chessBoard.getPiece(square), x, y, screen)
 	}
 
 }
