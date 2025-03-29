@@ -1,7 +1,5 @@
 package chessgame
 
-import "github.com/hajimehoshi/ebiten/v2"
-
 type piece int
 
 type pieceColor int
@@ -41,12 +39,6 @@ type castlingState struct {
 	whiteKingMoved bool
 }
 
-type chessBoard struct {
-	board           [8][8]chessPiece
-	enpassantSquare vector2
-	castlingState
-}
-
 type vector2 struct {
 	x int
 	y int
@@ -72,21 +64,6 @@ type promotionLifeCycle struct {
 type mouseState struct {
 	mousePressed   bool
 	lastMouseState bool
-}
-
-type graphicsState struct {
-	windowWidth    int
-	windowHeight   int
-	pieceEbitenMap map[chessPiece]*ebiten.Image
-}
-
-type ChessGame struct {
-	chessBoard
-	mouseState
-	mouseLifeCycle
-	promotionLifeCycle
-	graphicsState
-	whitesTurn bool
 }
 
 // Initializers:

@@ -46,7 +46,7 @@ func (g *ChessGame) handleMouseReleaseInPromotionPhase() {
 }
 
 func (g *ChessGame) handleMouseClickInChessPhase() {
-	mouseSquare, outOfBounds := g.graphicsState.getSquareOfMousePosition(ebiten.CursorPosition())
+	mouseSquare, outOfBounds := g.chessBoardGraphic.getSquareOfMousePosition(ebiten.CursorPosition())
 
 	// Handle Out of Bounds case
 	if outOfBounds {
@@ -93,7 +93,7 @@ func (g *ChessGame) handleMouseReleaseInChessPhase() {
 		return
 	}
 
-	mouseSquare, outOfBounds := g.graphicsState.getSquareOfMousePosition(ebiten.CursorPosition())
+	mouseSquare, outOfBounds := g.chessBoardGraphic.getSquareOfMousePosition(ebiten.CursorPosition())
 
 	// If mouse if out of bounds,
 	if outOfBounds {

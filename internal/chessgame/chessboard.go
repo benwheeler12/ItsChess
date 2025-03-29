@@ -7,7 +7,14 @@ const (
 	hSideCastlingYValue = 5
 )
 
-func (cb *chessBoard) initializeBoard() {
+type chessBoard struct {
+	// Board State
+	board           [8][8]chessPiece
+	enpassantSquare vector2
+	castlingState
+}
+
+func (cb *chessBoard) init() {
 	// Initialize whole board with empty squares
 	for file := 0; file < 8; file++ {
 		cb.board[file] = [8]chessPiece{
