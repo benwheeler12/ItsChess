@@ -20,10 +20,6 @@ const (
 	startingWindowHeight int = 700
 
 	pieceScale float64 = .9 // As a factor of Chess Square Dimensions
-
-	// Rotation factor of the baord between matrix state and drawn state.  Rotation in degrees is rotationFactor * 90
-	rotationFactor int = 2
-	flipFactor     int = 1
 )
 
 // Base colors
@@ -69,46 +65,66 @@ var (
 	blackKingBytes []byte
 )
 
-// Methods for basic dimensions as functions of window height and width
-func (gr *graphicsState) boardWidth() int {
-	return min(gr.windowWidth, gr.windowHeight) + 4
-}
+func (g *ChessGame) Draw(screen *ebiten.Image) {
 
-func (gr *graphicsState) boardHeight() int {
-	return min(gr.windowWidth, gr.windowHeight) + 4
-}
+	chessBoardImage := ebiten.NewImage(g.boardWidth(), g.boardHeight())
 
-func (gr *graphicsState) squareWidth() float64 {
-	return float64(gr.boardWidth() / 8)
-}
+	chessBoardImage.Fill(color.RGBA{255, 255, 255, 255})
 
-func (gr *graphicsState) squareHeight() float64 {
-	return float64(gr.boardHeight() / 8)
-}
-
-func (gr *graphicsState) pieceWidth() float64 {
-	return gr.squareWidth() * pieceScale
-}
-
-func (gr *graphicsState) pieceHeight() float64 {
-	return gr.squareHeight() * pieceScale
-}
-
-func (g *ChessGame) initializePieceImages() {
-	g.pieceEbitenMap = map[chessPiece]*ebiten.Image{
-		{pawn, white}:   g.getPieceImage(whitePawnBytes),
-		{pawn, black}:   g.getPieceImage(blackPawnBytes),
-		{bishop, white}: g.getPieceImage(whiteBishopBytes),
-		{bishop, black}: g.getPieceImage(blackBishopBytes),
-		{knight, white}: g.getPieceImage(whiteKnightBytes),
-		{knight, black}: g.getPieceImage(blackKnightBytes),
-		{rook, white}:   g.getPieceImage(whiteRookBytes),
-		{rook, black}:   g.getPieceImage(blackRookBytes),
-		{queen, white}:  g.getPieceImage(whiteQueenBytes),
-		{queen, black}:  g.getPieceImage(blackQueenBytes),
-		{king, white}:   g.getPieceImage(whiteKingBytes),
-		{king, black}:   g.getPieceImage(blackKingBytes),
+	if g.chessBoard.playerInCheckMate(white) || g.chessBoard.playerInCheckMate(black) {
+		return
 	}
+
+	// Draw Board
+	for file := range 8 {
+		for rank := range 8 {
+
+			squareX := g.squareWidth() * float64(file)
+			squareY := g.squareHeight() * float64(rank)
+
+			g.drawChessSquare(chessBoardImage, squareX, squareY, float32(g.squareWidth()), float32(g.squareHeight()), rotateChessCoord(vector2{file, rank}, rotationFactor))
+			continue
+		}
+	}
+
+	// Draw the clicked piece
+	if g.mouseLifeCycle.selectedPiece != emptyPiece {
+		mouseX, mouseY := ebiten.CursorPosition()
+		g.drawChessPiece(g.selectedPiece, float64(mouseX), float64(mouseY), chessBoardImage)
+	}
+	promotionPopupCenter := g.graphicsState.getPromotionPopupOrigin(vector2{0, 0})
+	g.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+
+	promotionPopupCenter = g.graphicsState.getPromotionPopupOrigin(vector2{0, 7})
+	g.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+
+	promotionPopupCenter = g.graphicsState.getPromotionPopupOrigin(vector2{7, 7})
+	g.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+
+	promotionPopupCenter = g.graphicsState.getPromotionPopupOrigin(vector2{7, 0})
+	g.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+
+	if g.promotionLifeCycle.promotionInProgress {
+		promotionPopupCenter := g.graphicsState.getPromotionPopupOrigin(g.promotionLifeCycle.promotionSquare)
+		g.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+	}
+
+	// Rotate the ChessBoard so that white is at the bottom
+	// Now draw the offscreen buffer to the screen with rotation
+	op := &ebiten.DrawImageOptions{}
+
+	// Set the origin to the center of the screen
+	w, h := float64(g.boardWidth()), float64(g.boardHeight())
+	op.GeoM.Translate(-w/2, -h/2)
+
+	// Rotate 180 degrees (π radians)
+	op.GeoM.Rotate(math.Pi)
+
+	// Move back to screen coordinates
+	op.GeoM.Translate(w/2, h/2)
+
+	// Draw the rotated image to the screen
+	screen.DrawImage(chessBoardImage, op)
 }
 
 func tintColor(originalColor color.RGBA, tint color.RGBA, alpha float64) color.RGBA {
@@ -156,31 +172,29 @@ func (g *ChessGame) drawChessSquare(screen *ebiten.Image, x float64, y float64, 
 
 }
 
-func (g *ChessGame) Draw(screen *ebiten.Image) {
+// Draws a white Box with width and height equal to twice the width and height of a chess square.
+// The box has black borders that are rounded at the corner, and has a vertical and horizontal line running through its center in a symmetrical cross
+// The box is drawn to the screen with its center at the coordinates specified by boxCenter
+func (g *ChessGame) drawPromotionBox(screen *ebiten.Image, boxCenter point) {
+	boxWidth := float32(g.squareWidth() * 2)
+	boxHeight := float32(g.squareHeight() * 2)
 
-	screen.Fill(color.RGBA{255, 255, 255, 255})
+	// Calculate top-left corner from center
+	x := boxCenter.x - float64(boxWidth)/2
+	y := boxCenter.y - float64(boxHeight)/2
 
-	if g.chessBoard.playerInCheckMate(white) || g.chessBoard.playerInCheckMate(black) {
-		return
-	}
+	// Draw white box
+	vector.DrawFilledRect(screen, float32(x), float32(y), boxWidth, boxHeight, color.RGBA{255, 255, 255, 255}, true)
 
-	// Draw Board
-	for file := range 8 {
-		for rank := range 8 {
+	// Draw black borders with rounded corners
+	borderWidth := float32(4)
+	vector.StrokeRect(screen, float32(x), float32(y), boxWidth, boxHeight, borderWidth, color.RGBA{0, 0, 0, 255}, true)
 
-			squareX := g.squareWidth() * float64(file)
-			squareY := g.squareHeight() * float64(rank)
+	// Draw vertical line
+	vector.StrokeLine(screen, float32(x+float64(boxWidth)/2), float32(y), float32(x+float64(boxWidth)/2), float32(y+float64(boxHeight)), borderWidth, color.RGBA{0, 0, 0, 255}, true)
 
-			g.drawChessSquare(screen, squareX, squareY, float32(g.squareWidth()), float32(g.squareHeight()), rotateCoord(vector2{file, rank}, rotationFactor))
-			continue
-		}
-	}
-
-	// Draw the clicked piece
-	if g.mouseLifeCycle.selectedPiece != emptyPiece {
-		mouseX, mouseY := ebiten.CursorPosition()
-		g.drawChessPiece(g.selectedPiece, float64(mouseX), float64(mouseY), screen)
-	}
+	// Draw horizontal line
+	vector.StrokeLine(screen, float32(x), float32(y+float64(boxHeight)/2), float32(x+float64(boxWidth)), float32(y+float64(boxHeight)/2), borderWidth, color.RGBA{0, 0, 0, 255}, true)
 }
 
 func (g *ChessGame) Layout(outsideWidth, outsideHeight int) (int, int) {
@@ -196,12 +210,6 @@ func (g *ChessGame) Layout(outsideWidth, outsideHeight int) (int, int) {
 }
 
 func (g *ChessGame) getPieceImage(pieceBytes []byte) *ebiten.Image {
-	// Open the SVG file
-	/**file, err := os.Open(path)
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer file.Close()*/
 
 	reader := bytes.NewReader(pieceBytes)
 
@@ -248,36 +256,4 @@ func (g *ChessGame) drawChessPiece(piece chessPiece, x float64, y float64, scree
 	op.Filter = ebiten.FilterNearest
 
 	screen.DrawImage(image, op)
-}
-
-func rotateCoord(square vector2, rotationFactor int) vector2 {
-	// normalize between 0 and 3
-	rotationFactor = ((rotationFactor % 4) + 4) % 4
-
-	x, y := 7-square.x, square.y
-
-	switch rotationFactor {
-	case 0:
-		return vector2{x, y}
-	case 1:
-		return vector2{7 - y, x}
-	case 2:
-		return vector2{7 - x, 7 - y}
-	case 3:
-		return vector2{y, 7 - x}
-	}
-	return vector2{x, y} // default case, shouldn't be reached
-}
-
-func (gr *graphicsState) getSquareOfMousePosition(x int, y int) (vector2, bool) {
-	file := int(float64(x) / gr.squareWidth())
-	rank := int(float64(y) / gr.squareHeight())
-
-	// Check if coordinates are within bounds
-	if file < 0 || file >= 8 || rank < 0 || rank >= 8 {
-		return nilSquare, true
-	}
-
-	// Apply rotation based on rotationFactor
-	return rotateCoord(vector2{file, rank}, -rotationFactor), false
 }

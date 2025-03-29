@@ -21,3 +21,20 @@ func StartGame() {
 		panic(err)
 	}
 }
+
+func (g *ChessGame) initializePieceImages() {
+	g.pieceEbitenMap = map[chessPiece]*ebiten.Image{
+		{pawn, white}:   g.getPieceImage(whitePawnBytes),
+		{pawn, black}:   g.getPieceImage(blackPawnBytes),
+		{bishop, white}: g.getPieceImage(whiteBishopBytes),
+		{bishop, black}: g.getPieceImage(blackBishopBytes),
+		{knight, white}: g.getPieceImage(whiteKnightBytes),
+		{knight, black}: g.getPieceImage(blackKnightBytes),
+		{rook, white}:   g.getPieceImage(whiteRookBytes),
+		{rook, black}:   g.getPieceImage(blackRookBytes),
+		{queen, white}:  g.getPieceImage(whiteQueenBytes),
+		{queen, black}:  g.getPieceImage(blackQueenBytes),
+		{king, white}:   g.getPieceImage(whiteKingBytes),
+		{king, black}:   g.getPieceImage(blackKingBytes),
+	}
+}

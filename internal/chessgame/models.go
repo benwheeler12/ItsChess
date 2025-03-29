@@ -9,6 +9,8 @@ type pieceColor int
 var emptyPiece = chessPiece{empty, nocolor}
 var nilSquare = vector2{-1, -1}
 
+const rotationFactor int = 2
+
 const (
 	nocolor pieceColor = iota
 	white
@@ -48,6 +50,11 @@ type chessBoard struct {
 type vector2 struct {
 	x int
 	y int
+}
+
+type point struct {
+	x float64
+	y float64
 }
 
 type mouseLifeCycle struct {
