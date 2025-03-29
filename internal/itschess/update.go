@@ -1,4 +1,4 @@
-package chessgame
+package itschess
 
 import (
 	"github.com/hajimehoshi/ebiten/v2"

@@ -1,6 +1,6 @@
 package main
 
-import "github.com/benwheeler12/ChessGame/internal/chessgame"
+import chessgame "github.com/benwheeler12/itschess/internal/itschess"
 
 func main() {
 	chessgame.StartGame()

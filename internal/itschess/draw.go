@@ -1,4 +1,4 @@
-package chessgame
+package itschess
 
 import (
 	_ "embed"

@@ -1,4 +1,4 @@
-module github.com/benwheeler12/ChessGame
+module github.com/benwheeler12/itschess
 
 go 1.24.0
 
