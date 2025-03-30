@@ -63,21 +63,8 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 		}
 	}
 
-	promotionPopupCenter := cbg.getPromotionPopupOrigin(vector2{3, 0})
-	cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
-
-	promotionPopupCenter = cbg.getPromotionPopupOrigin(vector2{0, 7})
-	cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
-
-	promotionPopupCenter = cbg.getPromotionPopupOrigin(vector2{7, 7})
-	cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
-
-	promotionPopupCenter = cbg.getPromotionPopupOrigin(vector2{7, 0})
-	cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
-
 	if cbg.promotionSquare != nilSquare {
-		promotionPopupCenter := cbg.getPromotionPopupOrigin(cbg.promotionSquare)
-		cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
+		cbg.drawPromotionBox(chessBoardImage)
 	}
 
 	op := &ebiten.DrawImageOptions{}
@@ -212,8 +199,10 @@ type clickedElement struct {
 func (cbg *chessBoardGraphic) getElementAtMousePosition(mousePosition vector2) clickedElement {
 	if cbg.promotionSquare == nilSquare {
 		return clickedElement{isChessSquare: true, isPromotionSquare: false, square: cbg.getSquareOfMousePosition(mousePosition)}
+	} else {
+		promotionSquare := cbg.getPromotionSquareOfMousePosition(mousePosition)
+		return clickedElement{isChessSquare: false, isPromotionSquare: true, square: promotionSquare}
 	}
-	panic("hi")
 }
 
 func (cbg *chessBoardGraphic) getPromotionPopupOrigin(promotionSquare vector2) point {
@@ -277,13 +266,23 @@ func (cbg *chessBoardGraphic) drawChessSquare(screen *ebiten.Image, chessBoard *
 // Draws a white Box with width and height equal to twice the width and height of a chess square.
 // The box has black borders that are rounded at the corner, and has a vertical and horizontal line running through its center in a symmetrical cross
 // The box is drawn to the screen with its center at the coordinates specified by boxCenter
-func (cbg *chessBoardGraphic) drawPromotionBox(screen *ebiten.Image, boxCenter point) {
+func (cbg *chessBoardGraphic) drawPromotionBox(screen *ebiten.Image) {
+
+	boxCenter := cbg.getPromotionPopupOrigin(cbg.promotionSquare)
+
 	boxWidth := float32(cbg.squareWidth() * 2)
 	boxHeight := float32(cbg.squareHeight() * 2)
 
 	// Calculate top-left corner from center
 	x := boxCenter.x - float64(boxWidth)/2
 	y := boxCenter.y - float64(boxHeight)/2
+
+	var pieceColor pieceColor
+	if cbg.promotionSquare.y == 7 {
+		pieceColor = white
+	} else {
+		pieceColor = black
+	}
 
 	// Draw white box
 	vector.DrawFilledRect(screen, float32(x), float32(y), boxWidth, boxHeight, color.RGBA{255, 255, 255, 255}, true)
@@ -297,6 +296,47 @@ func (cbg *chessBoardGraphic) drawPromotionBox(screen *ebiten.Image, boxCenter p
 
 	// Draw horizontal line
 	vector.StrokeLine(screen, float32(x), float32(y+float64(boxHeight)/2), float32(x+float64(boxWidth)), float32(y+float64(boxHeight)/2), borderWidth, color.RGBA{0, 0, 0, 255}, true)
+
+	// Define the pieces to be drawn
+	pieces := []chessPiece{
+		{pieceType: rook, color: pieceColor},
+		{pieceType: queen, color: pieceColor},
+		{pieceType: knight, color: pieceColor},
+		{pieceType: bishop, color: pieceColor},
+	}
+
+	// Calculate the positions for each piece within the promotion box
+	for i, piece := range pieces {
+		pieceX := x + float64(i%2)*cbg.squareWidth()
+		pieceY := y + float64(i/2)*cbg.squareHeight()
+		cbg.drawChessPiece(piece, pieceX, pieceY, screen)
+	}
+}
+
+func (cbg *chessBoardGraphic) getPromotionSquareOfMousePosition(mousePosition vector2) vector2 {
+	boxCenter := cbg.getPromotionPopupOrigin(cbg.promotionSquare)
+
+	boxWidth := float32(cbg.squareWidth() * 2)
+	boxHeight := float32(cbg.squareHeight() * 2)
+
+	// Calculate top-left corner from center
+	x := boxCenter.x - float64(boxWidth)/2
+	y := boxCenter.y - float64(boxHeight)/2
+
+	if mousePosition.x >= int(x) && mousePosition.x < int(x+float64(boxWidth)/2) && mousePosition.y >= int(y) && mousePosition.y < int(y+float64(boxHeight)/2) {
+		// Top-left box
+		return vector2{0, 0}
+	} else if mousePosition.x >= int(x+float64(boxWidth)/2) && mousePosition.x < int(x+float64(boxWidth)) && mousePosition.y >= int(y) && mousePosition.y < int(y+float64(boxHeight)/2) {
+		// Top-right box
+		return vector2{0, 1}
+	} else if mousePosition.x >= int(x) && mousePosition.x < int(x+float64(boxWidth)/2) && mousePosition.y >= int(y+float64(boxHeight)/2) && mousePosition.y < int(y+float64(boxHeight)) {
+		// Bottom-left box
+		return vector2{1, 0}
+	} else if mousePosition.x >= int(x+float64(boxWidth)/2) && mousePosition.x < int(x+float64(boxWidth)) && mousePosition.y >= int(y+float64(boxHeight)/2) && mousePosition.y < int(y+float64(boxHeight)) {
+		// Bottom-right box
+		return vector2{1, 1}
+	}
+
 }
 
 func (cbg *chessBoardGraphic) Layout(outsideWidth, outsideHeight int) (int, int) {
