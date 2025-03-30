@@ -6,13 +6,8 @@ import (
 	"github.com/hajimehoshi/ebiten/v2"
 )
 
-type ChessGame struct {
-	chessBoard
-	chessBoardGraphic
-	mouseState
-	mouseLifeCycle
-	promotionLifeCycle
-	whitesTurn bool
+type Game struct {
+	ChessGame
 }
 
 // Graphics Consts
@@ -22,7 +17,7 @@ const (
 )
 
 func StartGame() {
-	var game *ChessGame = &ChessGame{}
+	var game *Game = &Game{}
 	ebiten.SetWindowResizingMode(ebiten.WindowResizingModeEnabled)
 	ebiten.SetWindowSize(startingWindowWidth, startingWindowHeight)
 	ebiten.SetWindowTitle("It's Chess")
@@ -35,4 +30,13 @@ func StartGame() {
 	if err := ebiten.RunGame(game); err != nil {
 		panic(err)
 	}
+}
+
+func (g *Game) Update() error {
+	g.ChessGame.Update()
+	return nil
+}
+
+func (g *Game) Draw(screen *ebiten.Image) {
+	g.ChessGame.Draw(screen)
 }
