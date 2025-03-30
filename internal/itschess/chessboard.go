@@ -255,7 +255,7 @@ func (cb *chessBoard) getAllValidMovesForPlayer(playerColor pieceColor) [][]vect
 	var allPlayerMoves [][]vector2
 
 	for _, playerSquare := range playerSquares {
-		playerMoveSquares := cb.getValidMoves(playerSquare, cb.getPiece(playerSquare))
+		playerMoveSquares := cb.getValidMoves(playerSquare)
 		for _, playerMoveSquare := range playerMoveSquares {
 			allPlayerMoves = append(allPlayerMoves, []vector2{playerSquare, playerMoveSquare})
 		}
@@ -264,7 +264,8 @@ func (cb *chessBoard) getAllValidMovesForPlayer(playerColor pieceColor) [][]vect
 	return allPlayerMoves
 }
 
-func (cb *chessBoard) getValidMoves(square vector2, chessPiece chessPiece) []vector2 {
+func (cb *chessBoard) getValidMoves(square vector2) []vector2 {
+	chessPiece := cb.getPiece(square)
 	switch chessPiece.pieceType {
 	case pawn:
 		return cb.getPawnMoves(chessPiece.color, square)

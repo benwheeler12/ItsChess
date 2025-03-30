@@ -22,7 +22,7 @@ func StartGame() {
 	ebiten.SetWindowSize(startingWindowWidth, startingWindowHeight)
 	ebiten.SetWindowTitle("It's Chess")
 	game.chessBoard.init()
-	game.chessBoardGraphic.init(math.Pi, 1, startingWindowWidth, startingWindowHeight)
+	game.chessBoardGraphic.init(point{0, 0}, math.Pi, 1, startingWindowWidth, startingWindowHeight)
 	game.mouseLifeCycle.resetMouseState()
 	game.promotionLifeCycle.resetPromotionLifeCycle()
 	game.whitesTurn = true

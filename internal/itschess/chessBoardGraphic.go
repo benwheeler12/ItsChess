@@ -14,11 +14,14 @@ import (
 )
 
 type chessBoardGraphic struct {
-	rotationTheta       float64
-	reflection          int
-	pieceImages         map[chessPiece]*ebiten.Image
-	width               int
-	height              int
+	// Graphics Properties
+	origin        point
+	rotationTheta float64
+	reflection    int
+	pieceImages   map[chessPiece]*ebiten.Image
+	width         int
+	height        int
+	// Game Properties
 	clickedSquare       vector2
 	possibleMoveSquares []vector2
 	promotionSquare     vector2
@@ -26,7 +29,7 @@ type chessBoardGraphic struct {
 
 const pieceScale = .9
 
-func (cbg *chessBoardGraphic) init(rotationTheta float64, reflection int, width int, height int) {
+func (cbg *chessBoardGraphic) init(origin point, rotationTheta float64, reflection int, width int, height int) {
 	cbg.rotationTheta = rotationTheta
 	cbg.reflection = reflection
 	cbg.width = width
@@ -60,12 +63,7 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 		}
 	}
 
-	// Draw the clicked piece
-	/**if cbg.mouseLifeCycle.selectedPiece != emptyPiece {
-		mouseX, mouseY := ebiten.CursorPosition()
-		cbg.drawChessPiece(cbg.selectedPiece, float64(mouseX), float64(mouseY), chessBoardImage)
-	}*/
-	promotionPopupCenter := cbg.getPromotionPopupOrigin(vector2{0, 0})
+	promotionPopupCenter := cbg.getPromotionPopupOrigin(vector2{3, 0})
 	cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
 
 	promotionPopupCenter = cbg.getPromotionPopupOrigin(vector2{0, 7})
@@ -82,31 +80,28 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 		cbg.drawPromotionBox(chessBoardImage, promotionPopupCenter)
 	}
 
-	// Rotate the ChessBoard so that white is at the bottom
-	// Now draw the offscreen buffer to the screen with rotation
 	op := &ebiten.DrawImageOptions{}
-
-	// Set the origin to the center of the screen
-	w, h := float64(cbg.boardWidth()), float64(cbg.boardHeight())
-	op.GeoM.Translate(-w/2, -h/2)
-	_, _ = w, h
-
-	// Rotate 180 degrees (π radians)
-	op.GeoM.Rotate(cbg.rotationTheta)
-
-	// Scale by -1 in the x direction to flip horizontally
-	if cbg.reflection == 1 {
-		op.GeoM.Scale(-1, 1)
-	}
-
-	// Move back to screen coordinates
-	op.GeoM.Translate(w/2, h/2)
+	op.GeoM = cbg.getBoardRotationGeo()
 
 	rotatedImage := ebiten.NewImage(cbg.boardWidth(), cbg.boardHeight())
-
 	rotatedImage.DrawImage(chessBoardImage, op)
 
+	x, y := ebiten.CursorPosition()
+	mousePosition := vector2{x, y}
+	cbg.drawClickedPiece(chessBoard, mousePosition, rotatedImage)
+
 	return rotatedImage
+}
+
+func (cbg *chessBoardGraphic) drawClickedPiece(cb *chessBoard, mousePosition vector2, screen *ebiten.Image) {
+	// Draw the clicked piece
+	if cbg.clickedSquare != nilSquare {
+		op := &ebiten.DrawImageOptions{}
+		//op.GeoM = cbg.getPieceRotationGeo()
+		op.GeoM.Translate(-cbg.pieceWidth()/2, -cbg.pieceHeight()/2)
+		op.GeoM.Translate(float64(mousePosition.x), float64(mousePosition.y))
+		screen.DrawImage(cbg.pieceImages[cb.getPiece(cbg.clickedSquare)], op)
+	}
 }
 
 // Loads Piece Images based on width and height of graphic
@@ -183,17 +178,42 @@ func (cbg *chessBoardGraphic) pieceWidth() float64 {
 func (cbg *chessBoardGraphic) pieceHeight() float64 {
 	return cbg.squareHeight() * pieceScale
 }
-func (cbg *chessBoardGraphic) getSquareOfMousePosition(x int, y int) (vector2, bool) {
-	file := int(float64(x) / cbg.squareWidth())
-	rank := int(float64(y) / cbg.squareHeight())
 
-	// Check if coordinates are within bounds
-	if file < 0 || file >= 8 || rank < 0 || rank >= 8 {
-		return nilSquare, true
+func (cbg *chessBoardGraphic) positionInGraphic(mousePosition vector2) bool {
+	x, y := mousePosition.x, mousePosition.y
+	// Check if coordinates are within bounds based on the origin and board width and height
+	if x < int(cbg.origin.x) || x >= int(cbg.origin.x)+cbg.boardWidth() || y < int(cbg.origin.y) || y >= int(cbg.origin.y)+cbg.boardHeight() {
+		return false
 	}
+	return true
+}
+
+func (cbg *chessBoardGraphic) getSquareOfMousePosition(mousePosition vector2) vector2 {
+
+	geo := cbg.getBoardRotationGeo()
+
+	x, y := geo.Apply(float64(mousePosition.x), float64(mousePosition.y))
+
+	// Create a point for the coordinate
+
+	file := int((x - cbg.origin.x) / cbg.squareWidth())
+	rank := int((y - cbg.origin.y) / cbg.squareHeight())
 
 	// Apply rotation based on rotationFactor
-	return rotateChessCoord(vector2{file, rank}, -rotationFactor), false
+	return vector2{file, rank}
+}
+
+type clickedElement struct {
+	isChessSquare     bool
+	isPromotionSquare bool
+	square            vector2
+}
+
+func (cbg *chessBoardGraphic) getElementAtMousePosition(mousePosition vector2) clickedElement {
+	if cbg.promotionSquare == nilSquare {
+		return clickedElement{isChessSquare: true, isPromotionSquare: false, square: cbg.getSquareOfMousePosition(mousePosition)}
+	}
+	panic("hi")
 }
 
 func (cbg *chessBoardGraphic) getPromotionPopupOrigin(promotionSquare vector2) point {
@@ -291,7 +311,6 @@ func (cbg *chessBoardGraphic) Layout(outsideWidth, outsideHeight int) (int, int)
 	return outsideWidth, outsideHeight
 }
 
-// x and y represnt the mid point of the image.
 func (cbg *chessBoardGraphic) drawChessPiece(piece chessPiece, x float64, y float64, screen *ebiten.Image) {
 
 	image, ok := cbg.pieceImages[piece]
@@ -302,10 +321,7 @@ func (cbg *chessBoardGraphic) drawChessPiece(piece chessPiece, x float64, y floa
 	op := &ebiten.DrawImageOptions{}
 
 	// Rotate Image
-	op.GeoM.Translate(-cbg.pieceWidth()/2, -cbg.pieceHeight()/2)
-	op.GeoM.Rotate(cbg.rotationTheta)
-	op.GeoM.Translate(cbg.pieceWidth()/2, cbg.pieceHeight()/2)
-
+	op.GeoM = cbg.getPieceRotationGeo()
 	// Translate Image
 	op.GeoM.Translate(x, y)
 
@@ -317,4 +333,39 @@ func (cbg *chessBoardGraphic) drawChessPiece(piece chessPiece, x float64, y floa
 	op.Filter = ebiten.FilterNearest
 
 	screen.DrawImage(image, op)
+}
+
+func (cbg *chessBoardGraphic) getBoardRotationGeo() ebiten.GeoM {
+
+	geom := ebiten.GeoM{}
+
+	w, h := float64(cbg.boardWidth()), float64(cbg.boardHeight())
+	geom.Translate(-w/2, -h/2)
+	_, _ = w, h
+
+	// Rotate 180 degrees (π radians)
+	geom.Rotate(cbg.rotationTheta)
+
+	// Scale by -1 in the x direction to flip horizontally
+	if cbg.reflection == 1 {
+		geom.Scale(-1, 1)
+	}
+
+	// Move back to screen coordinates
+	geom.Translate(w/2, h/2)
+
+	// Translate by board position
+	geom.Translate(cbg.origin.x, cbg.origin.y)
+
+	return geom
+}
+
+func (cbg *chessBoardGraphic) getPieceRotationGeo() ebiten.GeoM {
+	geom := ebiten.GeoM{}
+
+	geom.Translate(-cbg.pieceWidth()/2, -cbg.pieceHeight()/2)
+	geom.Rotate(cbg.rotationTheta)
+	geom.Translate(cbg.pieceWidth()/2, cbg.pieceHeight()/2)
+
+	return geom
 }
