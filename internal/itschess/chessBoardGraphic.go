@@ -28,10 +28,11 @@ type chessBoardGraphic struct {
 	width         int
 	height        int
 	// Game Properties
-	clickedSquare       vector2
-	possibleMoveSquares []vector2
-	promotionSquare     vector2
-	confetti            []confetti
+	clickedSquare          vector2
+	clickedPromotionSquare vector2
+	possibleMoveSquares    []vector2
+	promotionSquare        vector2
+	confetti               []confetti
 }
 
 const pieceScale = .9
@@ -65,6 +66,7 @@ func (cbg *chessBoardGraphic) init(origin point, rotationTheta float64, reflecti
 	cbg.loadPieceImages()
 
 	cbg.clickedSquare = nilSquare
+	cbg.clickedPromotionSquare = nilSquare
 	cbg.possibleMoveSquares = nil
 	cbg.promotionSquare = nilSquare
 }
@@ -147,9 +149,9 @@ func (cbg *chessBoardGraphic) getPromotionPiece(promotionSquare vector2) piece {
 	case vector2{1, 0}:
 		return knight
 	case vector2{0, 0}:
-		return bishop
-	case vector2{1, 1}:
 		return rook
+	case vector2{1, 1}:
+		return bishop
 	case vector2{0, 1}:
 		return queen
 	default:

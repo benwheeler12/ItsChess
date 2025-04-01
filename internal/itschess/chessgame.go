@@ -84,7 +84,7 @@ func (g *ChessGame) handleMouseClick() {
 		if clickedSquare == nilSquare {
 			return
 		}
-		g.chessBoardGraphic.clickedSquare = clickedElement.square
+		g.chessBoardGraphic.clickedPromotionSquare = clickedElement.square
 	}
 
 }
@@ -94,6 +94,7 @@ func (g *ChessGame) handleMouseRelease() {
 	defer func() {
 		g.chessBoardGraphic.possibleMoveSquares = nil
 		g.chessBoardGraphic.clickedSquare = nilSquare
+		g.chessBoardGraphic.clickedPromotionSquare = nilSquare
 	}()
 	x, y := ebiten.CursorPosition()
 	mousePosition := vector2{x, y}
@@ -123,7 +124,7 @@ func (g *ChessGame) handleMouseRelease() {
 	} else if clickedElement.isPromotionSquare {
 		clickedSquare := clickedElement.square
 		// Perform Promotion
-		if clickedSquare == g.chessBoardGraphic.clickedSquare {
+		if clickedSquare == g.chessBoardGraphic.clickedPromotionSquare {
 			promotedPieceType := g.chessBoardGraphic.getPromotionPiece(clickedSquare)
 			promotedPieceColor := white
 			if !g.whitesTurn {
