@@ -117,6 +117,7 @@ func (cbg *chessBoardGraphic) drawClickedPiece(cb *chessBoard, mousePosition vec
 		op := &ebiten.DrawImageOptions{}
 		//op.GeoM = cbg.getPieceRotationGeo()
 		op.GeoM.Translate(-cbg.pieceWidth()/2, -cbg.pieceHeight()/2)
+		op.GeoM.Scale(-1, 1)
 		op.GeoM.Translate(float64(mousePosition.x), float64(mousePosition.y))
 		screen.DrawImage(cbg.pieceImages[cb.getPiece(cbg.clickedSquare)], op)
 	}
