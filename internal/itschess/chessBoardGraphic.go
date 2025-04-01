@@ -46,11 +46,6 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 
 	chessBoardImage.Fill(color.RGBA{255, 255, 255, 255})
 
-	// TODO implement checkmate animation
-	if chessBoard.playerInCheckMate(white) || chessBoard.playerInCheckMate(black) {
-		return chessBoardImage
-	}
-
 	// Draw Board
 	for file := range 8 {
 		for rank := range 8 {
@@ -69,6 +64,14 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM = cbg.getBoardRotationGeo()
+
+	// TODO implement checkmate animation
+	if chessBoard.playerInCheckMate(white) || chessBoard.playerInCheckMate(black) {
+		// Draw checkmate animation
+		cbg.drawCheckmateAnimation(chessBoardImage, chessBoard)
+
+		return chessBoardImage
+	}
 
 	rotatedImage := ebiten.NewImage(cbg.boardWidth(), cbg.boardHeight())
 	rotatedImage.DrawImage(chessBoardImage, op)
@@ -106,6 +109,22 @@ func (cbg *chessBoardGraphic) loadPieceImages() {
 		{queen, black}:  cbg.getPieceImage(blackQueenBytes),
 		{king, white}:   cbg.getPieceImage(whiteKingBytes),
 		{king, black}:   cbg.getPieceImage(blackKingBytes),
+	}
+}
+
+func (cbg *chessBoardGraphic) getPromotionPiece(promotionSquare vector2) piece {
+
+	switch promotionSquare {
+	case vector2{1, 0}:
+		return knight
+	case vector2{0, 0}:
+		return bishop
+	case vector2{1, 1}:
+		return rook
+	case vector2{0, 1}:
+		return queen
+	default:
+		panic("Invalid promotion square")
 	}
 }
 
@@ -314,6 +333,11 @@ func (cbg *chessBoardGraphic) drawPromotionBox(screen *ebiten.Image) {
 }
 
 func (cbg *chessBoardGraphic) getPromotionSquareOfMousePosition(mousePosition vector2) vector2 {
+
+	geo := cbg.getBoardRotationGeo()
+
+	mouseX, mouseY := geo.Apply(float64(mousePosition.x), float64(mousePosition.y))
+
 	boxCenter := cbg.getPromotionPopupOrigin(cbg.promotionSquare)
 
 	boxWidth := float32(cbg.squareWidth() * 2)
@@ -323,19 +347,21 @@ func (cbg *chessBoardGraphic) getPromotionSquareOfMousePosition(mousePosition ve
 	x := boxCenter.x - float64(boxWidth)/2
 	y := boxCenter.y - float64(boxHeight)/2
 
-	if mousePosition.x >= int(x) && mousePosition.x < int(x+float64(boxWidth)/2) && mousePosition.y >= int(y) && mousePosition.y < int(y+float64(boxHeight)/2) {
+	if mouseX >= x && mouseX < x+float64(boxWidth)/2 && mouseY >= y && mouseY < y+float64(boxHeight)/2 {
 		// Top-left box
 		return vector2{0, 0}
-	} else if mousePosition.x >= int(x+float64(boxWidth)/2) && mousePosition.x < int(x+float64(boxWidth)) && mousePosition.y >= int(y) && mousePosition.y < int(y+float64(boxHeight)/2) {
+	} else if mouseX >= x+float64(boxWidth)/2 && mouseX < x+float64(boxWidth) && mouseY >= y && mouseY < y+float64(boxHeight)/2 {
 		// Top-right box
 		return vector2{0, 1}
-	} else if mousePosition.x >= int(x) && mousePosition.x < int(x+float64(boxWidth)/2) && mousePosition.y >= int(y+float64(boxHeight)/2) && mousePosition.y < int(y+float64(boxHeight)) {
+	} else if mouseX >= x && mouseX < x+float64(boxWidth)/2 && mouseY >= y+float64(boxHeight)/2 && mouseY < y+float64(boxHeight) {
 		// Bottom-left box
 		return vector2{1, 0}
-	} else if mousePosition.x >= int(x+float64(boxWidth)/2) && mousePosition.x < int(x+float64(boxWidth)) && mousePosition.y >= int(y+float64(boxHeight)/2) && mousePosition.y < int(y+float64(boxHeight)) {
+	} else if mouseX >= x+float64(boxWidth)/2 && mouseX < x+float64(boxWidth) && mouseY >= y+float64(boxHeight)/2 && mouseY < y+float64(boxHeight) {
 		// Bottom-right box
 		return vector2{1, 1}
 	}
+
+	return nilSquare
 
 }
 

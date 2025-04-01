@@ -19,6 +19,10 @@ type ChessGame struct {
 
 func (g *ChessGame) Update() error {
 
+	if g.chessBoard.playerInCheckMate(white) || g.chessBoard.playerInCheckMate(black) {
+		return nil // Game over baby
+	}
+
 	g.lastMouseState = g.mousePressed
 
 	g.mousePressed = ebiten.IsMouseButtonPressed((ebiten.MouseButtonLeft))
@@ -76,7 +80,11 @@ func (g *ChessGame) handleMouseClick() {
 		g.chessBoardGraphic.clickedSquare = mouseSquare
 		g.chessBoardGraphic.possibleMoveSquares = g.chessBoard.getValidMoves(g.chessBoardGraphic.clickedSquare)
 	} else if clickedElement.isPromotionSquare {
-		// TODO
+		clickedSquare := clickedElement.square
+		if clickedSquare == nilSquare {
+			return
+		}
+		g.chessBoardGraphic.clickedSquare = clickedElement.square
 	}
 
 }
@@ -113,7 +121,19 @@ func (g *ChessGame) handleMouseRelease() {
 			g.whitesTurn = !g.whitesTurn
 		}
 	} else if clickedElement.isPromotionSquare {
-		// TODO
+		clickedSquare := clickedElement.square
+		// Perform Promotion
+		if clickedSquare == g.chessBoardGraphic.clickedSquare {
+			promotedPieceType := g.chessBoardGraphic.getPromotionPiece(clickedSquare)
+			promotedPieceColor := white
+			if !g.whitesTurn {
+				promotedPieceColor = black
+			}
+			g.chessBoard.setPiece(g.chessBoardGraphic.promotionSquare, chessPiece{promotedPieceType, promotedPieceColor})
+			g.whitesTurn = !g.whitesTurn
+			g.chessBoardGraphic.promotionSquare = nilSquare
+		}
+
 	}
 
 }
