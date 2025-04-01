@@ -2,15 +2,21 @@ package itschess
 
 import (
 	"bytes"
+	"fmt"
 	"image"
 	"image/color"
 	"log"
 	"math"
+	"math/rand"
 
 	"github.com/hajimehoshi/ebiten/v2"
+	"github.com/hajimehoshi/ebiten/v2/examples/resources/fonts"
+	ebitentext "github.com/hajimehoshi/ebiten/v2/text"
 	"github.com/hajimehoshi/ebiten/v2/vector"
 	"github.com/srwiley/oksvg"
 	"github.com/srwiley/rasterx"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/opentype"
 )
 
 type chessBoardGraphic struct {
@@ -25,9 +31,31 @@ type chessBoardGraphic struct {
 	clickedSquare       vector2
 	possibleMoveSquares []vector2
 	promotionSquare     vector2
+	confetti            []confetti
 }
 
 const pieceScale = .9
+
+var (
+	mplusNormalFont font.Face
+)
+
+func init() {
+	tt, err := opentype.Parse(fonts.MPlus1pRegular_ttf)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	const dpi = 72
+	mplusNormalFont, err = opentype.NewFace(tt, &opentype.FaceOptions{
+		Size:    24,
+		DPI:     dpi,
+		Hinting: font.HintingFull,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+}
 
 func (cbg *chessBoardGraphic) init(origin point, rotationTheta float64, reflection int, width int, height int) {
 	cbg.rotationTheta = rotationTheta
@@ -65,16 +93,16 @@ func (cbg *chessBoardGraphic) drawChessBoard(chessBoard *chessBoard) *ebiten.Ima
 	op := &ebiten.DrawImageOptions{}
 	op.GeoM = cbg.getBoardRotationGeo()
 
+	rotatedImage := ebiten.NewImage(cbg.boardWidth(), cbg.boardHeight())
+	rotatedImage.DrawImage(chessBoardImage, op)
+
+	chessBoardImage = rotatedImage
+
 	// TODO implement checkmate animation
 	if chessBoard.playerInCheckMate(white) || chessBoard.playerInCheckMate(black) {
 		// Draw checkmate animation
 		cbg.drawCheckmateAnimation(chessBoardImage, chessBoard)
-
-		return chessBoardImage
 	}
-
-	rotatedImage := ebiten.NewImage(cbg.boardWidth(), cbg.boardHeight())
-	rotatedImage.DrawImage(chessBoardImage, op)
 
 	x, y := ebiten.CursorPosition()
 	mousePosition := vector2{x, y}
@@ -434,4 +462,77 @@ func (cbg *chessBoardGraphic) getPieceRotationGeo() ebiten.GeoM {
 	geom.Translate(cbg.pieceWidth()/2, cbg.pieceHeight()/2)
 
 	return geom
+}
+
+type confetti struct {
+	x, y      float64
+	dx, dy    float64
+	color     color.RGBA
+	rotation  float64
+	drotation float64
+	size      float64
+}
+
+func (cbg *chessBoardGraphic) drawCheckmateAnimation(screen *ebiten.Image, chessBoard *chessBoard) {
+	// Create confetti particles if not already created
+	if cbg.confetti == nil {
+		cbg.confetti = make([]confetti, 100)
+		for i := range cbg.confetti {
+			cbg.confetti[i] = confetti{
+				x:         float64(rand.Intn(cbg.boardWidth())),
+				y:         float64(rand.Intn(cbg.boardHeight())),
+				dx:        (rand.Float64() - 0.5) * 5,
+				dy:        (rand.Float64() - 0.5) * 5,
+				color:     color.RGBA{byte(rand.Intn(255)), byte(rand.Intn(255)), byte(rand.Intn(255)), 255},
+				rotation:  rand.Float64() * 360,
+				drotation: (rand.Float64() - 0.5) * 10,
+				size:      rand.Float64()*10 + 5,
+			}
+		}
+	}
+
+	// Update and draw confetti
+	for i := range cbg.confetti {
+		c := &cbg.confetti[i]
+		c.x += c.dx
+		c.y += c.dy
+		c.rotation += c.drotation
+
+		// Bounce off edges
+		if c.x < 0 || c.x > float64(cbg.boardWidth()) {
+			c.dx *= -1
+		}
+		if c.y < 0 || c.y > float64(cbg.boardHeight()) {
+			c.dy *= -1
+		}
+
+		// Draw confetti piece
+		op := &ebiten.DrawImageOptions{}
+		op.GeoM.Translate(-c.size/2, -c.size/2)
+		op.GeoM.Rotate(c.rotation * math.Pi / 180)
+		op.GeoM.Translate(c.x, c.y)
+		op.ColorM.ScaleWithColor(c.color)
+
+		confettiImg := ebiten.NewImage(int(c.size), int(c.size))
+		confettiImg.Fill(color.RGBA{255, 255, 255, 255})
+		screen.DrawImage(confettiImg, op)
+	}
+
+	// Determine winner and create text
+	winner := "Black"
+	if chessBoard.playerInCheckMate(black) {
+		winner = "White"
+	}
+
+	// Draw text
+	textColor := color.RGBA{255, 215, 0, 255} // Gold color
+	textX := float64(cbg.boardWidth()) / 2
+	textY := float64(cbg.boardHeight()) / 2
+
+	vector.DrawFilledRect(screen, float32(textX-200), float32(textY-30), 400, 60, color.RGBA{0, 0, 0, 180}, true)
+	vector.DrawFilledRect(screen, float32(textX-198), float32(textY-28), 396, 56, color.RGBA{255, 255, 255, 180}, true)
+	vector.DrawFilledRect(screen, float32(textX-196), float32(textY-26), 392, 52, color.RGBA{0, 0, 0, 180}, true)
+
+	msg := fmt.Sprintf("%s Won the Game!", winner)
+	ebitentext.Draw(screen, msg, mplusNormalFont, int(textX-100), int(textY+10), textColor)
 }
